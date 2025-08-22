@@ -1,0 +1,173 @@
+{
+  "INPUTDIM": 2,
+  "CONDDIM": 5,
+  "NODES_COND": 9,
+  "HIDDEN_COND": 4,
+  "NODES_TRANS": 4,
+  "LRATE": 0.01,
+  "DECAY": 1.0,
+  "GAP": 1000,
+  "DEPTH": 10,
+  "PERMUTE": false,
+  "REGULARIZER": "L1",
+  "INITIALIZER": "RandomNormal",
+  "ACTIVATION": "swish",
+  "BETA1": 0.9,
+  "BETA2": 0.99,
+  "MINIBATCH": 512,
+  "DISC TAG": [
+    "ABCDnn"
+  ],
+  "INPUTS": [
+    "Bprime_mass",
+    "gcJet_ST",
+    "NJets_forward",
+    "NJets_DeepFlavL"
+  ],
+  "INPUTMEANS": [
+    "6.552106",
+    "6.502051",
+    "0.0",
+    "0.0",
+    "0.0",
+    "0.0",
+    "0.0"
+  ],
+  "INPUTSIGMAS": [
+    "0.38835135",
+    "0.28372946",
+    "1.0",
+    "1.0",
+    "1.0",
+    "1.0",
+    "1.0"
+  ],
+  "VARIABLES": {
+    "Bprime_mass": {
+      "CATEGORICAL": false,
+      "TRANSFORM": true,
+      "LIMIT": [
+        0.0,
+        10
+      ],
+      "LIMIT_plot": [
+        0.0,
+        2500.0
+      ],
+      "MIN": 400,
+      "LATEX": "M_{reco}"
+    },
+    "gcJet_ST": {
+      "CATEGORICAL": false,
+      "TRANSFORM": true,
+      "LIMIT": [
+        0.0,
+        1500.0
+      ],
+      "LIMIT_plot": [
+        0.0,
+        1500.0
+      ],
+      "MIN": 400,
+      "LATEX": "ST_{gcJet}"
+    },
+    "NJets_forward": {
+      "CATEGORICAL": true,
+      "TRANSFORM": false,
+      "LIMIT": [
+        0,
+        1
+      ],
+      "LATEX": "N_{forward}"
+    },
+    "NJets_DeepFlavL": {
+      "CATEGORICAL": true,
+      "TRANSFORM": false,
+      "LIMIT": [
+        2,
+        4
+      ],
+      "LATEX": "N_b"
+    }
+  },
+  "REGIONS": {
+    "X": {
+      "VARIABLE": "NJets_DeepFlavL",
+      "INCLUSIVE": true,
+      "MIN": null,
+      "MAX": null,
+      "SIGNAL": 2,
+      "CONDITION": "<=",
+      "A": [
+        "==",
+        3
+      ],
+      "B": [
+        "<=",
+        2
+      ],
+      "C": [
+        "==",
+        3
+      ],
+      "D": [
+        "<=",
+        2
+      ],
+      "X": [
+        ">=",
+        4
+      ],
+      "Y": [
+        ">=",
+        4
+      ]
+    },
+    "Y": {
+      "VARIABLE": "NJets_forward",
+      "INCLUSIVE": true,
+      "MIN": null,
+      "MAX": null,
+      "SIGNAL": 1,
+      "CONDITION": ">=",
+      "A": [
+        "==",
+        0
+      ],
+      "B": [
+        "==",
+        0
+      ],
+      "C": [
+        ">=",
+        1
+      ],
+      "D": [
+        ">=",
+        1
+      ],
+      "X": [
+        "==",
+        0
+      ],
+      "Y": [
+        ">=",
+        1
+      ]
+    }
+  },
+  "EPOCHS": 6000,
+  "TRANSFER": 0.12328248418840787,
+  "CLOSURE": {
+    "Bprime_mass": [
+      0.02,
+      0.1,
+      0.1
+    ],
+    "gcLeadingOSFatJet_pNetJ": [
+      0.02,
+      0.05,
+      0.05
+    ]
+  }
+}
