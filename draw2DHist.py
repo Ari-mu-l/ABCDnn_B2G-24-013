@@ -1,10 +1,11 @@
 import ROOT
 import math
 
+ROOT.gROOT.SetBatch(True)
+
 year = 'all'
-#sample = ['Major', 'Signal']
-mass = 1400
-case = 'Case3'
+mass = 800
+case = 'Case1'
 if case in ['Case1','Case4','Case14']:
     rfileMajor = ROOT.TFile.Open(f'rootFiles_logBpMlogST_Jan2025Run2/Case14/JanMajor_{year}_mc_p100.root','READ')
     rfileSignal = ROOT.TFile.Open(f'rootFiles_logBpMlogST_Jan2025Run2/Case14/JanSignal{mass}_{year}_mc_p100.root','READ')

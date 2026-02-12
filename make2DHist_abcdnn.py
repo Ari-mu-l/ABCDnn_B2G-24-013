@@ -44,6 +44,7 @@ Nbins_BpM = 540 #800 #460 #420
 Nbins_ST  = 40 #100 #32 #30
 validationCut = 850
 
+
 log = False # set to False if want BpM instead of log(BpM)
 if log:
   validationCut = np.log(validationCut)
@@ -61,6 +62,7 @@ if isTest:
   if not os.path.exists(testDir):
     os.makedirs(testDir)
 else: testDir = ''
+
 
 print( ">> Reading in {}.json for hyper parameters...".format( args.tag ) )
 with open( os.path.join( folder, args.tag + ".json" ), "r" ) as f:

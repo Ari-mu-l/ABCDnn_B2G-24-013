@@ -15,6 +15,14 @@ import ROOT
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+#plt.use("Agg")
+plt.rcParams['font.sans-serif'] = ['Helvetica']
+plt.rcParams['font.family'] = 'sans-serif'
+import mplhep as hep # cms style
+hep.style.use("CMS")
+
+#import matplotlib.font_manager as fm
+#fm._rebuild()
 
 os.environ["KERAS_BACKEND"] = "tensorflow"
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
@@ -35,6 +43,7 @@ args = parser.parse_args()
 
 plotBest = True # TEMP
 plotLog = False
+debugPlotting = False
 
 folder = config.params[ "MODEL" ][ "SAVEDIR" ]
 folder_contents = os.listdir( folder )
@@ -174,27 +183,30 @@ predictions = {}
 predictions_best = { region: [] for region in [ "X", "Y", "A", "B", "C", "D" ] }
 
 if plotBest:
-  NAF = abcdnn.NAF( 
-    inputdim = params["INPUTDIM"],
-    conddim = params["CONDDIM"],
-    activation = params["ACTIVATION"], 
-    regularizer = params["REGULARIZER"],
-    initializer = params["INITIALIZER"],
-    nodes_cond = params["NODES_COND"],
-    hidden_cond = params["HIDDEN_COND"],
-    nodes_trans = params["NODES_TRANS"],
-    depth = params["DEPTH"],
-    permute = bool( params["PERMUTE"] )
-  )
-  NAF.load_weights( os.path.join( folder, args.tag ) )
+  if debugPlotting:
+    for region in predictions_best:
+      predictions_best[ region ] = np.asarray( inputs_nrm_region[ region ][:,:2] ) * inputsigmas[0:2] + inputmeans[0:2]
+  else:
+    NAF = abcdnn.NAF( 
+      inputdim = params["INPUTDIM"],
+      conddim = params["CONDDIM"],
+      activation = params["ACTIVATION"], 
+      regularizer = params["REGULARIZER"],
+      initializer = params["INITIALIZER"],
+      nodes_cond = params["NODES_COND"],
+      hidden_cond = params["HIDDEN_COND"],
+      nodes_trans = params["NODES_TRANS"],
+      depth = params["DEPTH"],
+      permute = bool( params["PERMUTE"] )
+    )
+    NAF.load_weights( os.path.join( folder, args.tag ) )
 
-  for region in tqdm.tqdm( predictions_best ):
-    NAF_predict = np.asarray( NAF.predict( np.asarray( inputs_nrm_region[ region ] )[::2] ) )
-    print("NAF_predict shape: {}".format(NAF_predict.shape))
-    predictions_best[ region ] = NAF_predict * inputsigmas[0:2] + inputmeans[0:2]
+    for region in tqdm.tqdm( predictions_best ):
+      NAF_predict = np.asarray( NAF.predict( np.asarray( inputs_nrm_region[ region ] )[::2] ) )
+      print("NAF_predict shape: {}".format(NAF_predict.shape))
+      predictions_best[ region ] = NAF_predict * inputsigmas[0:2] + inputmeans[0:2]
 
-  del NAF
-
+    del NAF
 else:
   for i, checkpoint in enumerate( sorted( checkpoints ) ):
     epoch = checkpoint.split( "EPOCH" )[1]
@@ -257,12 +269,10 @@ def plot_hist( ax, variable, x, y, epoch, mc_pred, mc_true, mc_minor, weights_mi
     mc_true  = np.exp(mc_true)
     mc_minor = np.exp(mc_minor)
     data  = np.exp(data)
-
-    print(mc_pred)
-    exit()
     
   mc_minor = np.clip(mc_minor, bins[0], bins[-1])
   data = np.clip(data, bins[0], bins[-1])
+  mc_true = np.clip(mc_true, bins[0], bins[-1])
     
   mc_pred_hist = np.histogram( np.clip( mc_pred, bins[0], bins[-1] ), bins = bins, density = False )
   mc_pred_scale = float( np.sum( mc_pred_hist[0] ) )
@@ -294,42 +304,61 @@ def plot_hist( ax, variable, x, y, epoch, mc_pred, mc_true, mc_minor, weights_mi
     ax.errorbar(
       0.5 * ( data_hist1[1:] + data_hist1[:-1] ),
       data_mod / data_mod_scale, yerr = np.sqrt( data_mod ) / data_mod_scale,
-      label = "Target - Minor" if args.useMinor else "Target",
+      label = "Data - Minor" if args.useMinor else "Data",
       marker = "o", markersize = 3, markerfacecolor = "black", markeredgecolor = "black",
-      elinewidth = 1, ecolor = "black" , capsize = 2, lw = 0 
+      elinewidth = 1, ecolor = "black" , capsize = 2, lw = 0, zorder=3
     )
   # plot the mc
   ax.errorbar(
     0.5 * ( mc_true_hist[1][1:] + mc_true_hist[1][:-1] ),
     mc_true_hist[0] / mc_true_scale, yerr = np.sqrt( mc_true_hist[0] ) / mc_true_scale,
     label = "Source",
-    marker = ",", drawstyle = "steps-mid", lw = 2, alpha = 0.7, color = "green"
+    marker = ",", drawstyle = "steps-mid", lw = 2, color = "#f89c20" #, alpha = 0.7
   )
-  # plot the predicted
+  # plot the predicted    
   ax.fill_between(
     0.5 * ( mc_pred_hist[1][1:] + mc_pred_hist[1][:-1] ),
     y2 = np.zeros( len( mc_pred_hist[0] ) ),
     y1 = mc_pred_hist[0] / mc_pred_scale, step = "mid",
     label = "ABCDnn",
-    color = "red", alpha = 0.5,
+    color = "#5790fc", alpha = 0.8,
   )
+
+   # ax.errorbar(
+   #  0.5 * ( mc_pred_hist[1][1:] + mc_pred_hist[1][:-1] ),
+   #  mc_pred_hist[0]/ mc_pred_scale, yerr = np.sqrt(mc_pred_hist[0])/mc_pred_scale,
+   #  fmt='none', # add error bar only
+   #  color="#5790fc", drawstyle = "steps-mid"
+   #  )
+   
   ax.fill_between(
     0.5 * ( mc_pred_hist[1][1:] + mc_pred_hist[1][:-1] ),
     y1 = ( mc_pred_hist[0] + np.sqrt( mc_pred_hist[0] ) ) / mc_pred_scale,
     y2 = ( mc_pred_hist[0] - np.sqrt( mc_pred_hist[0] ) ) / mc_pred_scale,
     interpolate = False, step = "mid",
-    color = "red", alpha = 0.2
+    label = "ABCDnn Uncert.",
+    facecolor = "none", edgecolor="gray", linewidth=0, hatch='\\\\\\\\'
   )
 
   if plotLog:
     ax.set_xlim( 5, np.log(config.variables[ variable ][ "LIMIT_plot" ][1]) )
   else:
     ax.set_xlim( config.variables[ variable ][ "LIMIT_plot" ][0], config.variables[ variable ][ "LIMIT_plot" ][1] )
-  y_max = max( [ max( data_mod ) / data_mod_scale, max( mc_true_hist[0] ) / mc_true_scale ] )
-  ax.set_ylim( 0, 1.4 * y_max )
-  ax.set_yscale( config.params[ "PLOT" ][ "YSCALE" ] )
-  ax.axes.yaxis.set_visible(False)
-  ax.axes.xaxis.set_visible(False)
+  #y_max = max( [ max( data_mod ) / data_mod_scale, max( mc_true_hist[0] ) / mc_true_scale ] )
+  #ax.set_ylim( 0, 1.4 * y_max )
+  ax.set_ylim( 0, 0.15 )
+  #ax.set_yscale( config.params[ "PLOT" ][ "YSCALE" ] )
+  ax.set_yticks( [0.02, 0.04, 0.06, 0.08, 0.10] )
+  if y==0:
+    ax.set_ylabel(r"$N_{bin}/N_{tot}$", y=0.8, fontsize=18)
+    ax.tick_params(axis='y', labelsize=15)
+  else:
+    ax.tick_params(axis='y', labelsize=0)
+  #ax.tick_params(axis='y', labelsize=15)
+  ax.tick_params(axis='x', which='both', labelbottom=False, labelsize=15)
+  #ax.axes.yaxis.set_visible(False)
+  #ax.axes.xaxis.set_visible(False)
+  
 
   region = region_key[x][y]
   title_text = "$"
@@ -350,10 +379,29 @@ def plot_hist( ax, variable, x, y, epoch, mc_pred, mc_true, mc_minor, weights_mi
   #ax.set_title( "Region {}: {}".format( region, title_text ), ha = "right", x = 1.0, fontsize = 10 )
   #print("Region {}: {}".format( region, title_text ))
   ax.text(
-    0.02, 0.95, f'Region {region}',
-    ha = "left", va = "top", transform = ax.transAxes, fontsize = 12
+    0.06, 0.9, f'Region {region}',
+    ha = "left", va = "top", transform = ax.transAxes, fontsize = 16 #, fontweight='bold' # guideline suggest to not use bold
   )
-  ax.legend( loc = "upper right", ncol = 2, fontsize = 10 )
+  if 'case23' in args.tag:
+    ax.text(
+      0.06, 0.8, f'LepT',
+      ha = "left", va = "top", transform = ax.transAxes, fontsize = 16
+    )
+  elif 'case14' in args.tag:
+    ax.text(
+      0.06, 0.8, f'LepW',
+      ha = "left", va = "top", transform = ax.transAxes, fontsize = 16
+    )
+  else:
+    os.exit('Unexpected tag category')
+  handles, labels = ax.get_legend_handles_labels()
+  if len(handles)>3:
+    if useMinor:
+      ax.legend([handles[2], handles[3], handles[0], handles[1]], ["Data-Minor", "MC", "ABCDnn", "ABCDnn Uncert."], loc = "upper right", ncol = 1, fontsize = 16 )
+    else:
+      ax.legend([handles[2], handles[3], handles[0], handles[1]], ["Data", "MC", "ABCDnn", "ABCDnn Uncert."], loc = "upper right", ncol = 1, fontsize = 16 )
+  else:
+      ax.legend([handles[2], handles[0], handles[1]], ["MC", "ABCDnn", "ABCDnn Uncert."], loc = "upper right", ncol = 1, fontsize = 16 )
 
 def plot_ratio( ax, variable, x, y, mc_pred, mc_true, mc_minor, weights_minor, data, bins, useMinor, blind ):
 
@@ -386,18 +434,27 @@ def plot_ratio( ax, variable, x, y, mc_pred, mc_true, mc_minor, weights_minor, d
     
   ratio = []
   ratio_std = []
+  data_uncert = []
   for i in range( len( data_mod ) ):
     if data_mod[i] == 0 or mc_pred_hist[0][i] == 0: 
       ratio.append(0)
       ratio_std.append(0)
+      data_uncert.append(0)
     else:
-      ratio.append( ( data_mod[i] / float( data_mod_scale ) /  ( mc_pred_hist[0][i] / float( mc_pred_scale ) ) ) )
-      ratio_std.append( ratio_err(
-        mc_pred_hist[0][i],
-        np.sqrt( mc_pred_hist[0][i] ),
-        data_mod[i],
-        np.sqrt( data_mod[i] )
-      ) * ( data_mod_scale / mc_pred_scale ) )
+      ratio.append( ( data_mod[i] / float( data_mod_scale ) ) /  ( mc_pred_hist[0][i] / float( mc_pred_scale ) ) )
+      # ratio_std.append( ratio_err(
+      #   mc_pred_hist[0][i],
+      #   np.sqrt( mc_pred_hist[0][i] ),
+      #   data_mod[i],
+      #   np.sqrt( data_mod[i] )
+      # ) * ( data_mod_scale / mc_pred_scale ) )
+      #ratio_std.append( np.sqrt(mc_pred_hist[0][i])/float( mc_pred_scale ) )
+      # uncert of x/y is (x/y)*sqrt((x_err/x)**2+(y_err/y)**2)
+      if mc_pred_hist[0][i]==0:
+        ratio_std.append(0)
+      else:
+        ratio_std.append( np.sqrt(2/mc_pred_hist[0][i]))
+      data_uncert.append((np.sqrt( data_mod[i] ) / data_mod_scale) / ( mc_pred_hist[0][i] / float( mc_pred_scale ) ))
 
   if region_key[x][y]=="D" and variable=="Bprime_mass":
     data_hist1 = data_hist[1][:21]
@@ -414,35 +471,67 @@ def plot_ratio( ax, variable, x, y, mc_pred, mc_true, mc_minor, weights_minor, d
     metricvalue = np.where(np.array(ratio_std)==0, 0, metricvalue)
     metrics[variable][region_key[x][y]]["by_bin"] =  metricvalue.tolist()
     metrics[variable][region_key[x][y]]["overall"] = np.sum(metricvalue)
-    
-  if not blind:
-    ax.scatter(
-      0.5 * ( data_hist1[1:] + data_hist1[:-1] ),
-      ratio, 
-      linewidth = 0, marker = "o", 
-      color = "black", zorder = 3
-    )
-    ax.fill_between(
-      0.5 * ( data_hist1[1:] + data_hist1[:-1] ),
-      y1 = np.array( ratio ) + np.array( ratio_std ),
-      y2 = np.array( ratio ) - np.array( ratio_std ),
-      interpolate = False, step = "mid",
-      color = "gray", alpha = 0.2
-    )
-  ax.axhline(
-    y = 1.0, color = "r", linestyle = "-", zorder = 1
-  )
 
-  if plotLog:
-    ax.set_xlabel( "$log({})$".format( config.variables[ variable ][ "LATEX" ] ), ha = "right", x = 1.0, fontsize = 10 )
-    ax.set_xlim( 5, np.log(config.variables[ variable ][ "LIMIT_plot" ][1]) )
+  if not blind:
+    # plot data uncert in ratio panel
+    ax.errorbar(
+      0.5 * ( data_hist[1][1:] + data_hist[1][:-1] ),
+      ratio, yerr = data_uncert,
+      marker = "o", markersize = 3, markerfacecolor = "black", markeredgecolor = "black",
+      elinewidth = 1, ecolor = "black" , capsize = 2, lw = 0,
+      zorder = 3
+    )
+    # ax.scatter(
+    #   0.5 * ( data_hist[1][1:] + data_hist[1][:-1] ),
+    #   ratio, 
+    #   linewidth = 0, marker = "o", s=20,
+    #   color = "black", zorder = 3
+    # )
+    # plot hatch band in ratio panel
+    #print(np.array( ratio ) + np.array( ratio_std ))
+    #print(np.array( ratio_std ))
+    #exit()
+  ax.fill_between(
+    0.5 * ( data_hist1[1:] + data_hist1[:-1] ),
+    y1 = 1 + np.array( ratio_std ), #np.array( ratio ) + np.array( ratio_std ),
+    y2 = 1 - np.array( ratio_std ), #np.array( ratio ) - np.array( ratio_std ),
+    interpolate = False, step = "mid",
+    facecolor = "none", edgecolor="gray", linewidth=0, hatch='\\\\\\\\'
+    #label="Stat. Uncert."
+  )
+    
+    #ax.legend( loc="upper left", bbox_to_anchor=(0,1.1), fontsize = 15 )
+  #ax.axhline(
+  #  y = 1.0, color = "r", linestyle = "-", zorder = 1
+  #)
+
+  ax.grid(axis='y', color='black', linestyle='--')
+
+  if y==1:
+    if plotLog:
+      ax.set_xlabel( "$log({})$".format( config.variables[ variable ][ "LATEX" ] ), ha = "right", x = 1.0, fontsize = 20 )
+      ax.set_xlim( 5, np.log(config.variables[ variable ][ "LIMIT_plot" ][1]) )
+    else:
+      ax.set_xlabel( "${}$".format( config.variables[ variable ][ "LATEX" ] ), ha = "right", x = 1.0, fontsize = 20 )
+      #ax.set_xlabel( r"{}".format( config.variables[ variable ][ "LATEX" ] ), ha = "right", x = 1.0, fontsize = 20, fontname='Times New Roman' )
+      ax.set_xlim( config.variables[ variable ][ "LIMIT_plot" ][0], config.variables[ variable ][ "LIMIT_plot" ][1] )
+      #ax.set_xticks( [0, 500, 1000, 1500, 2000, 2500] )
+  #if y==0:
   else:
-    ax.set_xlabel( "${}$".format( config.variables[ variable ][ "LATEX" ] ), ha = "right", x = 1.0, fontsize = 10 )
+    ax.set_ylabel( "Data/ABCDnn", loc = "bottom", fontsize = 14 )
+    #ax.set_xticks( [0, 500, 1000, 1500, 2000, 2500] )
+    #ax.set_xticklabels(["0","500","1000","1500","2000",""])
     ax.set_xlim( config.variables[ variable ][ "LIMIT_plot" ][0], config.variables[ variable ][ "LIMIT_plot" ][1] )
-  ax.set_ylabel( "Target/ABCDnn", ha = "right", y = 1.0, fontsize = 8 )
+    xticks = ax.xaxis.get_major_ticks()
+    xticks[-1].label1.set_visible(False)
+  ax.set_yticks( [ 0.60, 0.80, 1.0, 1.20, 1.40 ] )
   ax.set_ylim( config.params[ "PLOT" ][ "RATIO" ][0], config.params[ "PLOT" ][ "RATIO" ][1] )
-  ax.set_yticks( [ 0.80, 0.90, 1.0, 1.10, 1.20 ] )
-  ax.tick_params( axis = "both", labelsize = 8 )
+  #ax.yaxis.set_minor_locator(plt.NullLocator())
+  if y==1:
+    ax.tick_params( axis = "y", labelsize = 0 )
+  else:
+    ax.tick_params( axis = "both", labelsize = 15 )
+  ax.tick_params( axis = "x", which = "both", top = False, labelsize = 15 )
   if x != 2: ax.axes.xaxis.set_visible(False)
 
 if plotBest:
@@ -468,7 +557,12 @@ if plotBest:
     #  bins = np.concatenate((bins[bins<2500], np.array([2750, 3750, 5000])), axis=0)
     #else:
     #  bins = np.linspace( config.variables[ variable ][ "LIMIT" ][0], config.variables[ variable ][ "LIMIT" ][1], config.params[ "PLOT" ][ "NBINS" ] )
-    fig, axs = plt.subplots( 6, 2, figsize = (9,12), gridspec_kw = { "height_ratios": [3,1,3,1,3,1] } )
+    fig, axs = plt.subplots( 6, 2, figsize = (12,15), gridspec_kw = { "height_ratios": [3,1,3,1,3,1] } ) # figsize = (9,12)
+    plt.subplots_adjust(wspace=0.04, hspace=0)
+    #plt.subplots_adjust(left=0.1, right=0.9, bottom=0.1, top=0.9)
+    #hep.cms.label("Preliminary", lumi=138.0, ax=axs[0][0], loc=0, fontsize=10)
+    hep.cms.text("", ax=axs[0][0], loc=0, fontsize=22)
+    hep.cms.lumitext(text="138 fb$^{-1}$ (13 TeV)", ax=axs[0][1], fontsize=22)
   
     for x in range(6):
       for y in range(2):

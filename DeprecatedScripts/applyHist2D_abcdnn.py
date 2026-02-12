@@ -13,36 +13,26 @@ TH1.SetDefaultSumw2(True)
 model_case14 = "22"
 model_case23 = "33"
 
-isSS1p2Tag = '' #'_SS1p2' #'_SS1p2' #'' for ANv8
-
-rootDir_case14 = f'logBpMlogST_mmd1_case14_random{model_case14}{isSS1p2Tag}'
-rootDir_case23 = f'logBpMlogST_mmd1_case23_random{model_case23}{isSS1p2Tag}'
+rootDir_case14 = f'logBpMlogST_mmd1_case14_random{model_case14}'
+rootDir_case23 = f'logBpMlogST_mmd1_case23_random{model_case23}'
 
 binlo = 400
 binhi = 2500
 bins = 210 #210 #105 for 2016 and 210 for full Run2 # ANv7 2D: 105 bins
 year = '' # '', '_2016'
 
-isBprimeT = False # True for t-associated; False for b-associated
-doV2 = True #IMPORTANT: REMEMBER TO TURN ON AND OFF!!
+doV2 = False #IMPORTANT: REMEMBER TO TURN ON AND OFF!!
 withoutCorrection = False
 withFit = False
 separateUncertCases = True
 
 if withoutCorrection:
-    outDirPostFix = '_noCorrection'
+    outDirTag = '_noCorrection'
 else:
-    #outDirPostFix = f'BtargetHoleCorrBTrain_smooth_rebin{year}_dynamicST_smoothBUncert'
-    #outDirPostFix = f'BtargetHoleCorrBTrain_smooth_rebin{year}_dynamicST_2DsmoothUncert' #1D
-    outDirPostFix = f'BtargetHoleCorrBTrain_smooth_rebin{year}_dynamicST' # ANv8 and paper-v4
-    #outDirPostFix = f'BtargetHoleCorrABCpABCTrain_2Dsmooth_rebin{year}' #2D
-
-if isSS1p2Tag:
-    outDirTag = f'SS1p2BprimeT'
-elif isBprimeT: # t-associated samples in templates*_Jan2025BprimeT 
-    outDirTag = f'Jan2025BprimeT'
-else:
-    outDirTag = f'Jan2025_{bins}bins{outDirPostFix}'
+    #outDirTag = f'BtargetHoleCorrBTrain_smooth_rebin{year}_dynamicST_smoothBUncert'
+    #outDirTag = f'BtargetHoleCorrBTrain_smooth_rebin{year}_dynamicST_2DsmoothUncert' #1D
+    outDirTag = f'BtargetHoleCorrBTrain_smooth_rebin{year}_dynamicST'
+    #outDirTag = f'BtargetHoleCorrABCpABCTrain_2Dsmooth_rebin{year}' #2D
 
 tag = {"case1" : "tagTjet",
        "case2" : "tagWjet",
@@ -50,7 +40,7 @@ tag = {"case1" : "tagTjet",
        "case4" : "untagWlep",
        }
 
-outDir = f'/uscms/home/xshen/nobackup/alma9/CMSSW_13_3_3/src/vlq-BtoTW-SLA/makeTemplates'
+outDir = '/uscms/home/xshen/nobackup/alma9/CMSSW_13_3_3/src/vlq-BtoTW-SLA/makeTemplates'
 
 def modifyOverflow(hist, bins):
     content = hist.GetBinContent(bins)+hist.GetBinContent(bins+1)
@@ -139,6 +129,7 @@ def createHist(case, region, histType, shift): # histType: Nominal, pNet, trainU
                 hist = histFile.Get(f'Bprime_mass_pre_{regionMap[region]}_withCorrect{region}{shift}').Clone()
         else:
             print("Please update region in the code. Exit...")
+            exit()
         modifyOverflow(hist,bins)
         outNameTag = f'__correct{shift}'
     elif "smooth" in histType:
@@ -151,13 +142,13 @@ def createHist(case, region, histType, shift): # histType: Nominal, pNet, trainU
     
     if doV2:
         if (region=="V" and (case=="case1" or case=="case2")) or (region=="D" and (case=="case3" or case=="case4")):
-            outFile = TFile.Open(f'{outDir}/templatesV2_{outDirTag}/templates_BpMass_ABCDnn_138fbfb{year}.root', "UPDATE")
+            outFile = TFile.Open(f'{outDir}/templatesV2_Jan2025_{bins}bins{outDirTag}/templates_BpMass_ABCDnn_138fbfb{year}.root', "UPDATE")
             hist_out.SetTitle("")
             hist_out.SetName(f'BpMass_ABCDnn_138fbfb_isL_{tag[case]}_V2__major{outNameTag}')
             hist_out.Write(f'BpMass_ABCDnn_138fbfb_isL_{tag[case]}_V2__major{outNameTag}', TObject.kOverwrite)
             outFile.Close()
     else:
-        outFile = TFile.Open(f'{outDir}/templates{region}_{outDirTag}/templates_BpMass_ABCDnn_138fbfb{year}.root', "UPDATE")
+        outFile = TFile.Open(f'{outDir}/templates{region}_Jan2025_{bins}bins{outDirTag}/templates_BpMass_ABCDnn_138fbfb{year}.root', "UPDATE")
         #if region=="highST":
         #    print(hist_out.Integral())
         #    print(f'BpMass_ABCDnn_138fbfb_isL_{tag[case]}_{region}__major{outNameTag}')
@@ -184,14 +175,13 @@ def addWithoutCorrection(case, region):
 
     if doV2:
         if (region=="V" and (case=="case1" or case=="case2")) or (region=="D" and (case=="case3" or case=="case4")):
-            outFile = TFile.Open(f'{outDir}/templatesV2_{outDirTag}/templates_BpMass_ABCDnn_138fbfb{year}.root', "UPDATE")
+            outFile = TFile.Open(f'{outDir}/templatesV2_Jan2025_{bins}bins{outDirTag}/templates_BpMass_ABCDnn_138fbfb{year}.root', "UPDATE")
             hist_out.SetTitle("")
             hist_out.SetName(f'BpMass_ABCDnn_138fbfb_isL_{tag[case]}_V2__major')
             hist_out.Write(f'BpMass_ABCDnn_138fbfb_isL_{tag[case]}_V2__major', TObject.kOverwrite)
             outFile.Close()
     else:
-        print(f'{outDir}/templates{region}_{outDirTag}/templates_BpMass_ABCDnn_138fbfb{year}.root')
-        outFile = TFile.Open(f'{outDir}/templates{region}_{outDirTag}/templates_BpMass_ABCDnn_138fbfb{year}.root', "UPDATE")
+        outFile = TFile.Open(f'{outDir}/templates{region}_Jan2025_{bins}bins{outDirTag}/templates_BpMass_ABCDnn_138fbfb{year}.root', "UPDATE")
         hist_out.SetTitle("")
         hist_out.SetName(f'BpMass_ABCDnn_138fbfb_isL_{tag[case]}_{region}__major')
         hist_out.Write(f'BpMass_ABCDnn_138fbfb_isL_{tag[case]}_{region}__major', TObject.kOverwrite)
@@ -216,5 +206,5 @@ else:
             for shift in shiftList:
                 createHist(case, "D", histType, shift)
                 #if year=='':
-                createHist(case, "V", histType, shift)
+                #createHist(case, "V", histType, shift)
                 ##createHist(case, "highST", histType, shift)
