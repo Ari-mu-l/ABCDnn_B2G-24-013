@@ -1,6 +1,9 @@
 # ABCDnn_B2G-24-013
 
-Note: Scripts used for studies and checks during the review process are under the `DeprecatedScripts/` directory.
+Note: 
+Scripts used for studies and checks during the review process are under the `DeprecatedScripts/` directory.
+
+Bbj and Btj interpretations use the same set of ABCDnn training. Background histograms not changed. Only signal samples changed.
 
 ## General Procedures
 ### Prepare root files for training
